@@ -56,25 +56,47 @@ const uint8_t Key_192[24] = {0x00 ,0x01 ,0x02 ,0x03
                             ,0x10 ,0x11 ,0x12 ,0x13
                             ,0x14 ,0x15 ,0x16 ,0x17
                         };
+const uint8_t Key_256[32] = {0x60 ,0x3d ,0xeb ,0x10
+                            ,0x15 ,0xca ,0x71 ,0xbe
+                            ,0x2b ,0x73 ,0xae ,0xf0
+                            ,0x85 ,0x7d ,0x77 ,0x81
+                            ,0x1f ,0x35 ,0x2c ,0x07
+                            ,0x3b ,0x61 ,0x08 ,0xd7
+                            ,0x2d ,0x98 ,0x10 ,0xa3
+                            ,0x09 ,0x14 ,0xdf ,0xf4 
+                        };
 const uint8_t Rcon[11] = {0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0X20, 0X40, 0X80, 0X1b, 0x36};   
 
 vector<vector<uint8_t>> stringToBlockHex(string& text, int blockSize);
 vector<vector<uint8_t>> convertorBlockToMatrix(vector<uint8_t> &block);
 vector<uint8_t> convertorMatrixToBlock( vector<vector<uint8_t>> &matrix);
 string convertorBlocksHexToString(vector<vector<uint8_t>>& blocks, int blockSize);
-vector<vector<uint8_t>> keyExpansion( const uint8_t key[], int , int); 
 
+//-----------------------------key expansion----------------------------
 void rotWord(vector<uint8_t>, int);
+vector<vector<uint8_t>> keyExpansion( const uint8_t key[], int , int); 
+void addRoundKey(vector<vector<uint8_t>> &matrix, vector<uint8_t> roundKeys);
+
+//--------------------------------encode--------------------------------
 void subWord(uint8_t &input);
 void subByte(vector<vector<uint8_t>> &input);
 void shiftRows(vector<vector<uint8_t>> &input);
-void addRoundKey(vector<uint8_t> roundKeys);
+void mixColumns(vector<vector<uint8_t>> &matrix);
+void AES(vector<vector<uint8_t>> &matrix, const vector<vector<uint8_t>> roundKeys, int round);
+
+//--------------------------------decode--------------------------------
+void invSubWord(uint8_t &input);
+void invSubByte(vector<vector<uint8_t>> &input);
+void invShiftRows(vector<vector<uint8_t>> &input);
+void invMixColumns(vector<vector<uint8_t>> &matrix);
+void invAES(vector<vector<uint8_t>> &matrix, const vector<vector<uint8_t>> roundKeys, int round);
 
 uint8_t nhan2(uint8_t x);
 uint8_t nhan3(uint8_t x);
-
-void AES(vector<vector<uint8_t>> &matrix, const vector<vector<uint8_t>> roundKeys, int round);
-// void AES_192(vector<vector<uint8_t>> &matrix, const vector<vector<uint8_t>> roundKeys);
+uint8_t nhan9(uint8_t x);
+uint8_t nhanB(uint8_t x);
+uint8_t nhanD(uint8_t x);
+uint8_t nhanE(uint8_t x);
 
 void printMatrix(vector<vector<uint8_t>> &matrix);
 void printRoundKeys(const vector<vector<uint8_t>> &roundKeys);
@@ -87,12 +109,41 @@ int main() {
                             ,0x88 ,0x99 ,0xaa ,0xbb
                             ,0xcc ,0xdd ,0xee ,0xff};
     vector<vector<uint8_t>> matrix = convertorBlockToMatrix(input);
-    vector<vector<uint8_t>> roundKeys = keyExpansion(Key_192, 24, 13);
-    vector<vector<uint8_t>> roundKey = keyExpansion(Key_128, 16, 11);
+    vector<vector<uint8_t>> roundKey_24 = keyExpansion(Key_192, 24, 13);
+    vector<vector<uint8_t>> roundKey_16 = keyExpansion(Key_128, 16, 11);
+    vector<vector<uint8_t>> roundKey_32 = keyExpansion(Key_128, 32, 15);
 
-    AES(matrix,roundKey,10);
+    
+    printMatrix(matrix);
+    cout<< "AES_128"<< endl;
+    AES(matrix, roundKey_16, 10);
     cout << "after cipher"<<endl;
     printMatrix(matrix);
+    invAES(matrix, roundKey_16, 10);
+    cout << "after decipher"<<endl;
+    printMatrix(matrix);
+    cout<<endl;
+
+    
+    cout<< "AES_192"<< endl;
+    AES(matrix, roundKey_24, 12);
+    cout << "after cipher"<<endl;
+    printMatrix(matrix);
+    invAES(matrix, roundKey_24, 12);
+    cout << "after decipher"<<endl;
+    printMatrix(matrix);
+    cout<<endl;
+
+
+    cout<< "AES_256"<< endl;
+    AES(matrix, roundKey_32, 14);
+    cout << "after cipher"<<endl;
+    printMatrix(matrix);
+    invAES(matrix, roundKey_32, 14);
+    cout << "after decipher"<<endl;
+    printMatrix(matrix);
+    cout<<endl;
+    
     return 0;
 }
 
@@ -289,14 +340,6 @@ void addRoundKey(vector<vector<uint8_t>> &matrix ,const vector<uint8_t> roundKey
     }
 }
 
-uint8_t nhan2(uint8_t x){
-    return (x << 1) ^ ((x & 0x80) ? 0x1B : 0x00);
-}
-
-uint8_t nhan3(uint8_t x){
-    return x ^ nhan2(x);
-}
-
 void mixColumns(vector<vector<uint8_t>> &matrix) {
     for (int col = 0; col < 4; col++) {
         uint8_t s0 = matrix[0][col], s1 = matrix[1][col], s2 = matrix[2][col], s3 = matrix[3][col];
@@ -340,4 +383,69 @@ void printRoundKeys(const vector<vector<uint8_t>> &roundKeys) {
         cout << endl;
     }
 }
+
+void printRoundKey(vector<uint8_t> roundkey){
+    cout << "roundKey " << endl;
+    for (size_t i = 0; i < 16; i++) {
+        printf("%02X ", roundkey[i]); // In dạng hex
+        if ((i + 1) % 4 == 0) cout << "  "; // Ngăn cách từng cột
+    }
+    cout << endl;
+}
+void invSubByte(vector<vector<uint8_t>> &input){
+    for (int i = 0; i<4 ; i++){
+        for (int j = 0; j<4 ; j++){
+            input[i][j] = IS[input[i][j]];
+        }
+    }  
+};
+void invShiftRows(vector<vector<uint8_t>> &input){
+    for(int i = 1; i<4; i++){
+        rotate(input[i].begin(), input[i].begin() + (4 - i), input[i].end());
+    }
+};
+
+void invMixColumns(vector<vector<uint8_t>> &matrix){
+    for (int col = 0; col < 4; col++) {
+        uint8_t s0 = matrix[0][col], s1 = matrix[1][col], s2 = matrix[2][col], s3 = matrix[3][col];
+
+        matrix[0][col] = nhanE(s0) ^ nhanB(s1) ^ nhanD(s2) ^ nhan9(s3); 
+        matrix[1][col] = nhan9(s0) ^ nhanE(s1) ^ nhanB(s2) ^ nhanD(s3);
+        matrix[2][col] = nhanD(s0) ^ nhan9(s1) ^ nhanE(s2) ^ nhanB(s3);
+        matrix[3][col] = nhanB(s0) ^ nhanD(s1) ^ nhan9(s2) ^ nhanE(s3);
+    }
+};
+
+void invAES(vector<vector<uint8_t>> &matrix, const vector<vector<uint8_t>> roundKeys, int round){
+    addRoundKey(matrix, roundKeys[round]);
+    for(int r = round - 1; r >= 1; r--){
+        invShiftRows(matrix);
+        invSubByte(matrix);
+        addRoundKey(matrix, roundKeys[r]);
+        invMixColumns(matrix);
+        
+    }
+    invShiftRows(matrix);
+    invSubByte(matrix);
+    addRoundKey(matrix, roundKeys[0]); 
+}
+
+uint8_t nhan2(uint8_t x){
+    return (x << 1) ^ ((x & 0x80) ? 0x1B : 0x00);
+}
+uint8_t nhan3(uint8_t x){
+    return x ^ nhan2(x);
+}
+uint8_t nhan9(uint8_t x){
+    return (nhan2(nhan2(nhan2(x))) ^ x);
+};
+uint8_t nhanB(uint8_t x){
+    return (nhan2(nhan2(nhan2(x))) ^ nhan2(x) ^ x);
+};
+uint8_t nhanD(uint8_t x){
+    return (nhan2(nhan2(nhan2(x))) ^ nhan2(nhan2(x))^ x);
+};
+uint8_t nhanE(uint8_t x){
+    return (nhan2(nhan2(nhan2(x))) ^ nhan2(nhan2(x)) ^ nhan2(x));
+};
 
