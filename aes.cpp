@@ -73,15 +73,12 @@ unsigned int nhan9(unsigned int w);
 unsigned int nhanB(unsigned int w);
 unsigned int nhanD(unsigned int w);
 unsigned int nhanE(unsigned int w);
-unsigned int m(unsigned int w);
 unsigned int nhanCot_encode(unsigned int w);
 unsigned int nhanCot_decode(unsigned int w);
 
 void showMatrix(unsigned int *m);
 
 int main() {
-    // can trien khai tu chuoi sieu dai thanh cac mang de xu ly
-    // viet ham xac dinh nk va nr
     int nk = 4, nr = 10;
     // input = 0x3243f6a8885a308d313198a2e0370734;
     unsigned int *w = new unsigned int[4];
@@ -103,37 +100,29 @@ int main() {
     
     unsigned int *roundKey, *cipher, *decipher;
 
-    cout << "Input:\n";
-    showMatrix(w);
+    // cout << "Input:\n";
+    // showMatrix(w);
 
-    cout << "128:\n";
-    roundKey = keyExpansion(key128, 4, 10);
-    cipher = encode(w, roundKey, 4, 10);
-    decipher = decode(cipher, roundKey, 4, 10);
+    // cout << "128:\n";
+    // roundKey = keyExpansion(key128, 4, 10);
+    // cipher = encode(w, roundKey, 4, 10);
+    // decipher = decode(cipher, roundKey, 4, 10);
     
-    cout << "Ciper:\n";
-    showMatrix(cipher);
-    cout << "Decipher:\n";
-    showMatrix(decipher);
-    
-    cout << "192:\n";
-    roundKey = keyExpansion(key192, 6, 12);
-    cipher = encode(w, roundKey, 6, 12);
-    decipher = decode(cipher, roundKey, 6, 12);
-    
-    cout << "Ciper:\n";
-    showMatrix(cipher);
-    cout << "Decipher:\n";
-    showMatrix(decipher);
+    // cout << "192:\n";
+    // roundKey = keyExpansion(key192, 6, 12);
+    // cipher = encode(w, roundKey, 6, 12);
+    // decipher = decode(cipher, roundKey, 6, 12);
     
     // cout << "256:\n";
     // roundKey = keyExpansion(key256, 8, 14);
     // cipher = encode(w, roundKey, 8, 14);
     // decipher = decode(cipher, roundKey, 8, 14);
 
-    // cout << "Ciper:\n";
+    // cout << "Plaintext:\n";
+    // showMatrix(w);
+    // cout << "Ciphertext:\n";
     // showMatrix(cipher);
-    // cout << "Decipher:\n";
+    // cout << "Deciphertext:\n";
     // showMatrix(decipher);
 
     delete[] w, key128, key192, key256, roundKey, cipher, decipher;
@@ -141,9 +130,6 @@ int main() {
 }
 
 //-----------------------------key expansion----------------------------
-//Generate round keys
-
-
 //Rotword
 unsigned int rotWord(unsigned int w) {
     return (w << 8) | (w >> 24);
@@ -186,6 +172,14 @@ unsigned int *keyExpansion(unsigned int *key, int nk, int nr) {
 
     // for (int i = 0; i < nb * (nr + 1); i++) {
     //     printf("\t[%02d]: %08x\n", i, expansion[i]);
+    //     if ((i + 1) % nb == 0) {
+    //         cout << endl;
+    //     }
+    // }
+
+    // for (int i = 0; i < nr + 1; i++) {
+    //     showMatrix(expansion + i * nb);
+    //     cout << endl;
     // }
 
     return expansion;
@@ -241,7 +235,7 @@ unsigned int *encode(unsigned int *w, unsigned int *roundKey, int nk, int nr) {
 
     for (int i = 1; i < nr; i++) {
         rs = subBytes(rs);
-        rs = shiftRows(rs);
+        showMatrix(rs);
         rs = mixColumns(rs);
         rs = addRoundKey(rs, roundKey + i * nb);
     }
@@ -292,16 +286,16 @@ unsigned int *invMixColumns(unsigned int *w) {
 //Decode
 unsigned int *decode(unsigned int *w, unsigned int *roundKey, int nk, int nr) {
     unsigned int *rs = new unsigned int[4];
-
+    
     rs = addRoundKey(w, roundKey + nr * nb);
     
-    for (int i = 1; i < nr; i++) {
+    for (int i = nr - 1; i > 0; i--) {
         rs = invShiftRows(rs);
         rs = invSubBytes(rs);
-        rs = addRoundKey(rs, roundKey + ((nb * nr) - nb * i));
+        rs = addRoundKey(rs, roundKey + (nb * i));
         rs = invMixColumns(rs);
     }
-    
+
     rs = invShiftRows(rs);
     rs = invSubBytes(rs);
     rs = addRoundKey(rs, roundKey);
@@ -339,8 +333,8 @@ void showMatrix(unsigned int *m) {
     // cout << duration2.count() << " mcs" << endl;
 
     for (int i = 0; i < 4; i++) {
-        printf("\t%08x\n", m[i]);
-        // printf("\t%08x\n", rs[i]);
+        // printf("\t%08x\n", m[i]);
+        printf("\t%08x\n", rs[i]);
     }
 }
 
@@ -350,66 +344,36 @@ unsigned int *cong(unsigned int *m1, unsigned int *m2) {
     rs[1] = m1[1] ^ m2[1];
     rs[2] = m1[2] ^ m2[2];
     rs[3] = m1[3] ^ m2[3];
-    // for (int i = 0; i < 4; i++) {
-    //     rs[i] = m1[i] ^ m2[i];
-    // }
-    
+ 
     return rs;
 }
 
-/*Giá trị 0x11b (1 0001 1011) là biểu diễn thập lục phân của đa thức được sử dụng trong thuật toán AES 
-(Tiêu chuẩn mã hóa nâng cao) cho số học trường hữu hạn. Cụ thể, nó biểu diễn đa thức 
-bất khả quy ( x^8 + x^4 + x^3 + x + 1 ) được sử dụng trong trường hữu hạn Rijndael ( GF(2^8) ).
-
-Trong AES, phép nhân trong trường hữu hạn ( GF(2^8) ) được thực hiện theo modulo đa thức này. 
-Đa thức ( x^8 + x^4 + x^3 + x + 1 ) được biểu diễn dưới dạng 0x11b trong hệ thập lục phân vì:
-
-Số hạng bậc cao nhất ( x^8 ) không được lưu trữ (vì nó được sử dụng để rút gọn), do đó đa thức 
-được biểu diễn dưới dạng ( x^7 + x^4 + x^3 + x + 1 ).
-
-Trong hệ nhị phân, đa thức này là 100011011, tương ứng với 0x11b trong hệ thập lục phân.
-Khi thực hiện phép nhân trong trường hữu hạn, nếu kết quả vượt quá 8 bit, nó sẽ được giảm 
-modulo 0x11b để đảm bảo kết quả nằm trong trường ( GF(2^8) ).*/
 unsigned int nhan2(unsigned int w) {
-    // unsigned int rs = w << 1;
-    // if (rs > 256)
-    //     rs ^= 0x11b;
-    // rs &= 0xff;
-    // return rs;
-    return (((w << 1) > 256) ? ((w << 1) ^ 0x11b) : (w << 1)) & 0xff;
+    unsigned int rs = w << 1;
+    if ((rs & 0x80) != 0) {
+        rs ^= 0x1b;
+    }
+    return rs & 0xff;
 }
 
 unsigned int nhan3(unsigned int w) {
-    // unsigned int rs = nhan2(w) ^ w;
-    // rs &= 0xff;
-    // return rs;
-    return (nhan2(w) ^ w) & 0xff;
+    return nhan2(w) ^ w;
 }
 
 unsigned int nhan9(unsigned int w) {
-    return m((w << 3) ^ w);
+    return (nhan2(nhan2(nhan2(w))) ^ w);
 }
 
 unsigned int nhanB(unsigned int w) {
-    return m((w << 3) ^ (w << 1) ^ w);
+    return (nhan2(nhan2(nhan2(w))) ^ nhan2(w) ^ w);
 }
 
 unsigned int nhanD(unsigned int w) {
-    return m((w << 3) ^ (w << 2) ^ w);
+    return (nhan2(nhan2(nhan2(w))) ^ nhan2(nhan2(w)) ^ w);
 }
 
 unsigned int nhanE(unsigned int w) {
-    return m((w << 3) ^ (w << 2) ^ (w << 1));
-}
-
-unsigned int m(unsigned int w) {
-    if (w > (256 << 2))
-        w ^= (0x11b << 2);
-    if (w > (256 << 1))
-        w ^= (0x11b << 1);
-    if (w > 256)
-        w ^= 0x11b;
-    return w & 0xff;
+    return (nhan2(nhan2(nhan2(w))) ^ nhan2(nhan2(w)) ^ nhan2(w));
 }
 
 unsigned int nhanCot_encode(unsigned int w) {
