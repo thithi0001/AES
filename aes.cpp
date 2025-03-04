@@ -3,7 +3,7 @@
 #include<chrono>
 
 using namespace std;
-using namespace std::chrono;
+using namespace std::chrono; // for high_resolution_clock
 
 const int nb = 4; // number of columns (32-bit words) comprising the state
 
@@ -100,13 +100,10 @@ int main() {
     
     unsigned int *roundKey, *cipher, *decipher;
 
-    // cout << "Input:\n";
-    // showMatrix(w);
-
-    // cout << "128:\n";
-    // roundKey = keyExpansion(key128, 4, 10);
-    // cipher = encode(w, roundKey, 4, 10);
-    // decipher = decode(cipher, roundKey, 4, 10);
+    cout << "128:\n";
+    roundKey = keyExpansion(key128, 4, 10);
+    cipher = encode(w, roundKey, 4, 10);
+    decipher = decode(cipher, roundKey, 4, 10);
     
     // cout << "192:\n";
     // roundKey = keyExpansion(key192, 6, 12);
@@ -118,12 +115,12 @@ int main() {
     // cipher = encode(w, roundKey, 8, 14);
     // decipher = decode(cipher, roundKey, 8, 14);
 
-    // cout << "Plaintext:\n";
-    // showMatrix(w);
-    // cout << "Ciphertext:\n";
-    // showMatrix(cipher);
-    // cout << "Deciphertext:\n";
-    // showMatrix(decipher);
+    cout << "Plaintext:\n";
+    showMatrix(w);
+    cout << "Ciphertext:\n";
+    showMatrix(cipher);
+    cout << "Deciphertext:\n";
+    showMatrix(decipher);
 
     delete[] w, key128, key192, key256, roundKey, cipher, decipher;
     return 0;
@@ -235,7 +232,7 @@ unsigned int *encode(unsigned int *w, unsigned int *roundKey, int nk, int nr) {
 
     for (int i = 1; i < nr; i++) {
         rs = subBytes(rs);
-        showMatrix(rs);
+        rs = shiftRows(rs);
         rs = mixColumns(rs);
         rs = addRoundKey(rs, roundKey + i * nb);
     }
