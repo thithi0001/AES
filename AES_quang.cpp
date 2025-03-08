@@ -47,7 +47,8 @@ const int IS[] = {
 const uint8_t Key_128[16] = {0x2b, 0x7e, 0x15, 0x16,
                              0x28, 0xae, 0xd2, 0xa6,
                              0xab, 0xf7, 0x15, 0x88,
-                             0x09, 0xcf, 0x4f, 0x3c};
+                             0x09, 0xcf, 0x4f, 0x3c
+                            };
 
 const uint8_t Key_192[24] = {0x00 ,0x01 ,0x02 ,0x03
                             ,0x04 ,0x05 ,0x06 ,0x07
@@ -55,7 +56,8 @@ const uint8_t Key_192[24] = {0x00 ,0x01 ,0x02 ,0x03
                             ,0x0c ,0x0d ,0x0e ,0x0f
                             ,0x10 ,0x11 ,0x12 ,0x13
                             ,0x14 ,0x15 ,0x16 ,0x17
-                        };
+                            };
+
 const uint8_t Key_256[32] = {0x60 ,0x3d ,0xeb ,0x10
                             ,0x15 ,0xca ,0x71 ,0xbe
                             ,0x2b ,0x73 ,0xae ,0xf0
@@ -64,7 +66,8 @@ const uint8_t Key_256[32] = {0x60 ,0x3d ,0xeb ,0x10
                             ,0x3b ,0x61 ,0x08 ,0xd7
                             ,0x2d ,0x98 ,0x10 ,0xa3
                             ,0x09 ,0x14 ,0xdf ,0xf4 
-                        };
+                            };
+
 const uint8_t Rcon[11] = {0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0X20, 0X40, 0X80, 0X1b, 0x36};   
 
 vector<vector<uint8_t>> stringToBlockHex(string& text, int blockSize);
@@ -83,6 +86,7 @@ void subByte(vector<vector<uint8_t>> &input);
 void shiftRows(vector<vector<uint8_t>> &input);
 void mixColumns(vector<vector<uint8_t>> &matrix);
 void AES(vector<vector<uint8_t>> &matrix, const vector<vector<uint8_t>> roundKeys, int round);
+string cipherAES(string &plantText, const uint8_t key[], int keySize, int nKey);
 
 //--------------------------------decode--------------------------------
 void invSubWord(uint8_t &input);
@@ -90,6 +94,7 @@ void invSubByte(vector<vector<uint8_t>> &input);
 void invShiftRows(vector<vector<uint8_t>> &input);
 void invMixColumns(vector<vector<uint8_t>> &matrix);
 void invAES(vector<vector<uint8_t>> &matrix, const vector<vector<uint8_t>> roundKeys, int round);
+string decipherAES(string &cipherText, const uint8_t key[], int keySize, int nKey );
 
 uint8_t nhan2(uint8_t x);
 uint8_t nhan3(uint8_t x);
@@ -102,52 +107,36 @@ void printMatrix(vector<vector<uint8_t>> &matrix);
 void printRoundKeys(const vector<vector<uint8_t>> &roundKeys);
 
 int main() {
-    string text = "Hello, AES Block Cipher!";
-    int blockSize = 16;
-    vector<uint8_t> input = {0x00 ,0x11 ,0x22 ,0x33
-                            ,0x44 ,0x55 ,0x66 ,0x77 
-                            ,0x88 ,0x99 ,0xaa ,0xbb
-                            ,0xcc ,0xdd ,0xee ,0xff};
-    vector<vector<uint8_t>> matrix = convertorBlockToMatrix(input);
-    vector<vector<uint8_t>> roundKey_24 = keyExpansion(Key_192, 24, 13);
-    vector<vector<uint8_t>> roundKey_16 = keyExpansion(Key_128, 16, 11);
-    vector<vector<uint8_t>> roundKey_32 = keyExpansion(Key_128, 32, 15);
-
-    
-    printMatrix(matrix);
-    cout<< "AES_128"<< endl;
-    AES(matrix, roundKey_16, 10);
-    cout << "after cipher"<<endl;
-    printMatrix(matrix);
-    invAES(matrix, roundKey_16, 10);
-    cout << "after decipher"<<endl;
-    printMatrix(matrix);
-    cout<<endl;
-
-    
-    cout<< "AES_192"<< endl;
-    AES(matrix, roundKey_24, 12);
-    cout << "after cipher"<<endl;
-    printMatrix(matrix);
-    invAES(matrix, roundKey_24, 12);
-    cout << "after decipher"<<endl;
-    printMatrix(matrix);
-    cout<<endl;
-
-
-    cout<< "AES_256"<< endl;
-    AES(matrix, roundKey_32, 14);
-    cout << "after cipher"<<endl;
-    printMatrix(matrix);
-    invAES(matrix, roundKey_32, 14);
-    cout << "after decipher"<<endl;
-    printMatrix(matrix);
-    cout<<endl;
-    
+    string text = "123dlasskdnfiao  o21o2kna3";
+    string cipherText = cipherAES(text, Key_128, 16, 11);
+    cout<< cipherText << endl;
+    string planText = decipherAES(cipherText, Key_128,16,11);
+    cout<< planText<<endl;
     return 0;
 }
 
-
+string cipherAES(string &plantText, const uint8_t key[], int keySize, int nKey ){
+    vector<vector<uint8_t>> roundKey = keyExpansion(key, keySize, nKey);
+    vector<vector<uint8_t>> blocksHex = stringToBlockHex(plantText, 16);
+    for(int i = 0; i < blocksHex.size(); i++){
+        vector<vector<uint8_t>> t = convertorBlockToMatrix(blocksHex[i]);
+        AES(t, roundKey, nKey -1);
+        blocksHex[i] = convertorMatrixToBlock(t);
+    }
+    string result = convertorBlocksHexToString(blocksHex, 16);
+    return result;
+};
+string decipherAES(string &cipherText, const uint8_t key[], int keySize, int nKey){
+    vector<vector<uint8_t>> roundKey = keyExpansion(key, keySize, nKey);
+    vector<vector<uint8_t>> blocksHex = stringToBlockHex(cipherText, 16);
+    for(int i = 0; i < blocksHex.size(); i++){
+        vector<vector<uint8_t>> t = convertorBlockToMatrix(blocksHex[i]);
+        invAES(t, roundKey, nKey -1);
+        blocksHex[i] = convertorMatrixToBlock(t);
+    }
+    string result = convertorBlocksHexToString(blocksHex, 16);
+    return result;
+}
 
 vector<vector<uint8_t>> stringToBlockHex(string& text, int blockSize) {
     vector<vector<uint8_t>> blocks;
@@ -179,7 +168,7 @@ vector<uint8_t> convertorMatrixToBlock( vector<vector<uint8_t>> &matrix){
     vector<uint8_t> result;
     for (int i = 0; i < 4; i++){
         for(int j = 0; j < 4; j ++){
-            result.push_back(matrix[i][j]);
+            result.push_back(matrix[j][i]);
         }
     }
     return result;
@@ -371,27 +360,6 @@ void printMatrix(vector<vector<uint8_t>> &matrix) {
     }
 }
 
-
-void printRoundKeys(const vector<vector<uint8_t>> &roundKeys) {
-    cout << "Round Keys:\n";
-    for (size_t round = 0; round < roundKeys.size(); round++) {
-        cout << "Round " << round << ": ";
-        for (size_t i = 0; i < roundKeys[round].size(); i++) {
-            printf("%02X ", roundKeys[round][i]); // In dạng hex
-            if ((i + 1) % 4 == 0) cout << "  "; // Ngăn cách từng cột
-        }
-        cout << endl;
-    }
-}
-
-void printRoundKey(vector<uint8_t> roundkey){
-    cout << "roundKey " << endl;
-    for (size_t i = 0; i < 16; i++) {
-        printf("%02X ", roundkey[i]); // In dạng hex
-        if ((i + 1) % 4 == 0) cout << "  "; // Ngăn cách từng cột
-    }
-    cout << endl;
-}
 void invSubByte(vector<vector<uint8_t>> &input){
     for (int i = 0; i<4 ; i++){
         for (int j = 0; j<4 ; j++){
@@ -449,3 +417,24 @@ uint8_t nhanE(uint8_t x){
     return (nhan2(nhan2(nhan2(x))) ^ nhan2(nhan2(x)) ^ nhan2(x));
 };
 
+
+void printRoundKeys(const vector<vector<uint8_t>> &roundKeys) {
+    cout << "Round Keys:\n";
+    for (size_t round = 0; round < roundKeys.size(); round++) {
+        cout << "Round " << round << ": ";
+        for (size_t i = 0; i < roundKeys[round].size(); i++) {
+            printf("%02X ", roundKeys[round][i]); // In dạng hex
+            if ((i + 1) % 4 == 0) cout << "  "; // Ngăn cách từng cột
+        }
+        cout << endl;
+    }
+}
+
+void printRoundKey(vector<uint8_t> roundkey){
+    cout << "roundKey " << endl;
+    for (size_t i = 0; i < 16; i++) {
+        printf("%02X ", roundkey[i]); // In dạng hex
+        if ((i + 1) % 4 == 0) cout << "  "; // Ngăn cách từng cột
+    }
+    cout << endl;
+}
