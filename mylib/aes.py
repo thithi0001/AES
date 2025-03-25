@@ -62,6 +62,9 @@ def print_vector_hex(v):
 
 def XOR(v1, v2):
     return v1 ^ v2
+    # rs = np.full(4, 0)
+    # for i in range(4):
+    #     rs[i] = v1[i] ^ v2[i]
 
 def nhan2(b: int) -> int:
     rs = b << 1
@@ -175,6 +178,7 @@ def add_round_key(state, roundKey):
     return rs
     
 def encrypt(state, roundKeys, nk, nr):
+    state = padding(state)
     rs = np.full(16, 0)
     rs = add_round_key(state, roundKeys[0:16])
 
@@ -222,6 +226,7 @@ def decrypt(state, roundKeys, nk, nr):
     rs = inv_sub_bytes(rs)
     rs = add_round_key(rs, roundKeys[0:16])
 
+    rs = remove_padding(rs)
     return rs
 
 def str_to_vector_hex(s: str):
@@ -254,5 +259,5 @@ def remove_padding(v):
     return v[:len(v) - pads]
 
 def random_vector(block_size = 16):
-    return np.random.randint(255, size = block_size)
+    return np.random.randint(0, 256, size = block_size)
     
